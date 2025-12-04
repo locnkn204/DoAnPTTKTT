@@ -270,7 +270,7 @@ int main()
 
     if (inputChoice == 1)
     {
-        FILE *fin = fopen("input.txt", "r");
+        FILE *fin = fopen("Chuoi/input_qhd.txt", "r");
         if (fin == NULL)
         {
             printf("\n[Loi] Khong tim thay file 'input.txt'! Chuyen sang nhap thu cong.\n\n");

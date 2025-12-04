@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <time.h>
 
+
 #define MIN_PARALLEL_SIZE 50000
 #define MAX_DEPTH 3
 
@@ -120,80 +121,238 @@ void printArray(int arr[], int n, int maxPrint) {
     printf("\n");
 }
 
+int readArrayFromFile(const char* filename, int arr[], int* n) {
+    FILE* f = NULL;
 
+    // fopen_s nhận 3 tham số: &FILE*, tên file, mode
+    errno_t err = fopen_s(&f, filename, "r");
+    if (err != 0 || f == NULL) {
+        printf("Không mở được file %s\n", filename);
+        return 0;
+    }
+
+    // Thử đọc số lượng phần tử trước
+    if (fscanf_s(f, "%d", n) == 1) {
+        for (int i = 0; i < *n; i++) {
+            if (fscanf_s(f, "%d", &arr[i]) != 1) {
+                printf("Dữ liệu trong file không hợp lệ!\n");
+                fclose(f);
+                return 0;
+            }
+        }
+    }
+    else {
+        // Không có số đầu → tự đọc hết file
+        rewind(f);
+        *n = 0;
+        while (fscanf_s(f, "%d", &arr[*n]) == 1) {
+            (*n)++;
+        }
+    }
+
+    fclose(f);
+    return 1;  // Thành công
+}
+
+void writeArrayToFile(const char* filename, int arr[], int n) {
+    FILE* f = NULL;
+    errno_t err = fopen_s(&f, filename, "w");
+    if (err != 0 || f == NULL) {
+        printf("Không mở được file để ghi: %s\n", filename);
+        return;
+    }
+
+    fprintf(f, "%d\n", n);
+    for (int i = 0; i < n; i++) {
+        fprintf(f, "%d ", arr[i]);
+    }
+
+    fclose(f);
+    printf("Đã ghi mảng sau khi sắp xếp vào file %s\n", filename);
+}
 // =============================
 // MAIN MENU
 // =============================
 
 int main() {
-    // Thiết lập UTF-8 cho console Windows
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-
     srand((unsigned)time(NULL));
 
     while (1) {
-        int choice;
-        printf("\n===== MENU MERGE SORT =====\n");
-        printf("1. Chạy CẢ tuần tự và song song\n");
-        printf("2. Chỉ chạy merge sort tuần tự\n");
-        printf("3. Chỉ chạy merge sort song song\n");
-        printf("0. Thoát\n");
-        printf("Chọn: ");
-        scanf("%d", &choice);
 
-        if (choice == 0) {
-            printf("Thoát chương trình.\n");
+        int chooseInput;
+        int* arr = NULL;
+        int n = 0;
+
+        // =============================
+        // B1: CHON NGUON DU LIEU
+        // =============================
+        printf("\n===== NHAP DU LIEU =====\n");
+        printf("1. Doc du lieu tu file input.txt\n");
+        printf("2. Tu nhap tu ban phim\n");
+        printf("3. Sinh mang ngau nhien (khong trung)\n");
+        printf("0. Thoat\n");
+        printf("Chon: ");
+        scanf_s("%d", &chooseInput);
+
+        if (chooseInput == 0) {
+            printf("Thoat chuong trinh.\n");
             return 0;
         }
 
-        int n;
-        printf("Nhập số lượng phần tử (>= 2): ");
-        scanf("%d", &n);
+        // ---- 1. DOC FILE ----
+        if (chooseInput == 1) {
+            arr = (int*)malloc(sizeof(int) * 1000000);
 
-        int* arrSeq = (int*)malloc(n * sizeof(int));
-        int* arrPar = (int*)malloc(n * sizeof(int));
+            if (!readArrayFromFile("Chuoi/input_mg.txt", arr, &n)) {
+                printf("Khong the doc file input.txt\n");
+                free(arr);
+                continue;
+            }
 
-        // Sinh mảng KHÔNG TRÙNG
-        generateUniqueRandom(arrSeq, n);
-        for (int i = 0; i < n; i++) arrPar[i] = arrSeq[i];
+            printf("Da doc %d phan tu tu file.\n", n);
+        }
 
-        printf("\nMảng ban đầu (10 phần tử đầu): ");
-        printArray(arrSeq, n, 10);
+        // ---- 2. TU NHAP ----
+        else if (chooseInput == 2) {
+
+            printf("Nhap so luong phan tu: ");
+            scanf_s("%d", &n);
+
+            arr = (int*)malloc(sizeof(int) * n);
+
+            printf("Nhap %d phan tu:\n", n);
+            for (int i = 0; i < n; i++) {
+                scanf_s("%d", &arr[i]);
+            }
+        }
+
+        // ---- 3. SINH NGAU NHIEN ----
+        else if (chooseInput == 3) {
+
+            printf("Nhap so luong phan tu muon sinh (>= 2): ");
+            scanf_s("%d", &n);
+
+            arr = (int*)malloc(sizeof(int) * n);
+
+            generateUniqueRandom(arr, n);
+
+            printf("Da sinh mang ngau nhien khong trung voi %d phan tu.\n", n);
+        }
+
+
+        // =============================
+        // IN 10 PHAN TU DAU CUA MANG GOC
+        // =============================
+        printf("\nMang ban dau (10 phan tu dau): ");
+        printArray(arr, n, 10);
+
+
+        // Tao 2 mang de chay 2 che do
+        int* arrSeq = (int*)malloc(sizeof(int) * n);
+        int* arrPar = (int*)malloc(sizeof(int) * n);
+
+        for (int i = 0; i < n; i++) {
+            arrSeq[i] = arr[i];
+            arrPar[i] = arr[i];
+        }
+
+
+        // =============================
+        // B2: CHON KIEU CHAY MERGE SORT
+        // =============================
+        int choiceSort;
+        printf("\n===== MENU MERGE SORT =====\n");
+        printf("1. Chay ca tuan tu va song song\n");
+        printf("2. Chi chay tuan tu\n");
+        printf("3. Chi chay song song\n");
+        printf("Chon: ");
+        scanf_s("%d", &choiceSort);
 
         double timeSeq = 0, timePar = 0;
 
-        // CASE 1 + 2 → chạy tuần tự
-        if (choice == 1 || choice == 2) {
+
+        // ---- SAP XEP TUAN TU ----
+        if (choiceSort == 1 || choiceSort == 2) {
             clock_t start = clock();
             mergeSortSequential(arrSeq, n);
             clock_t end = clock();
             timeSeq = (double)(end - start) / CLOCKS_PER_SEC;
 
-            printf("\n⏳ Thời gian tuần tự: %.6f giây\n", timeSeq);
+            printf("Thoi gian sap xep tuan tu: %.6f giay\n", timeSeq);
         }
 
-        // CASE 1 + 3 → chạy song song
-        if (choice == 1 || choice == 3) {
+        // ---- SAP XEP SONG SONG ----
+        if (choiceSort == 1 || choiceSort == 3) {
             clock_t start = clock();
             mergeSortParallel(arrPar, n);
             clock_t end = clock();
             timePar = (double)(end - start) / CLOCKS_PER_SEC;
 
-            printf("Thời gian song song: %.6f giây\n", timePar);
+            printf("Thoi gian sap xep song song: %.6f giay\n", timePar);
         }
 
-        // Nếu chọn 1 → in speedup
-        if (choice == 1) {
-            printf("\nTăng tốc (Seq / Par): %.2fx\n", timeSeq / timePar);
+        // ---- SPEEDUP ----
+        // ---- SPEEDUP ----
+        if (choiceSort == 1) {
+
+            if (timePar == 0 && timeSeq == 0) {
+                printf("Khong the tinh speedup: ca hai thoi gian bang 0!\n");
+            }
+            else if (timePar == 0) {
+                printf("Khong the tinh speedup: thoi gian song song = 0 (chia cho 0)!\n");
+            }
+            else if (timeSeq == 0) {
+                printf("Khong the tinh speedup: thoi gian tuan tu = 0!\n");
+            }
+            else {
+                double speedup = timeSeq / timePar;
+                printf("Speedup (Seq / Par): %.2f\n", speedup);
+            }
         }
 
-        printf("\nMảng sau khi sắp xếp (10 phần tử đầu): ");
-        printArray((choice == 2) ? arrSeq : arrPar, n, 10);
 
+
+        // =============================
+        // IN MANG SAU KHI SAP XEP
+        // =============================
+        printf("\nMang sau khi sap xep (10 phan tu dau): ");
+
+        if (choiceSort == 2)
+            printArray(arrSeq, n, 10);
+        else
+            printArray(arrPar, n, 10);
+
+
+        // =============================
+        // B3: HOI CO MUON XUAT FILE KHONG
+        // =============================
+        int exportChoice;
+        printf("\nBan co muon ghi ket qua ra output.txt khong?\n");
+        printf("1. Co\n");
+        printf("2. Khong\n");
+        printf("Chon: ");
+        scanf_s("%d", &exportChoice);
+
+        if (exportChoice == 1) {
+            if (choiceSort == 2)
+                writeArrayToFile("output.txt", arrSeq, n);
+            else
+                writeArrayToFile("output.txt", arrPar, n);
+
+            printf("Da ghi file output.txt.\n");
+        }
+
+        // GIAI PHONG BO NHO
+        free(arr);
         free(arrSeq);
         free(arrPar);
+
+        printf("\n==============================\n");
+        printf("Nhan Enter de quay lai menu...");
+        getchar(); getchar();
     }
 
     return 0;
 }
+
+
