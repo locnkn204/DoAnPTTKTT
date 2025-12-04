@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -49,7 +49,7 @@ double fractionalKnapsack(Item items[], int n, double capacity)
     printf("\n+========================================================+\n");
     printf("|          QUA TRINH CHON VAT PHAM (THAM LAM)           |\n");
     printf("+========================================================+\n");
-    printf("| Vat pham | Trong luong | Gia tri | Ty le  | Lay (%)   |\n");
+    printf("| Vat pham | Trong luong | Gia tri | Ty le  | Lay (%%)   |\n");
     printf("+----------+-------------+---------+--------+-----------+\n");
 
     for (int i = 0; i < n; i++)
@@ -252,37 +252,78 @@ int main()
 
     int n;
     double capacity;
+    Item *items = NULL;
+    int inputChoice;
 
     printf("+========================================================+\n");
     printf("|        BAI TOAN BALO - THUAT TOAN THAM LAM             |\n");
     printf("+========================================================+\n\n");
 
-    // Nhap du lieu
-    printf("Nhap so luong vat pham: ");
-    scanf("%d", &n);
+    // -----------------------------------------------------------
+    // PHẦN 1: TÙY CHỌN NHẬP DỮ LIỆU (FILE HOẶC NHẬP TAY)
+    // -----------------------------------------------------------
+    printf("Chon phuong thuc nhap du lieu:\n");
+    printf("  1. Nhap tu file 'input.txt'\n");
+    printf("  2. Nhap tu ban phim (thu cong)\n");
+    printf("Lua chon cua ban (1/2): ");
+    scanf("%d", &inputChoice);
 
-    printf("Nhap trong luong toi da cua balo: ");
-    scanf("%lf", &capacity);
+    if (inputChoice == 1)
+    {
+        FILE *fin = fopen("input.txt", "r");
+        if (fin == NULL)
+        {
+            printf("\n[Loi] Khong tim thay file 'input.txt'! Chuyen sang nhap thu cong.\n\n");
+            inputChoice = 2; // Fallback to manual
+        }
+        else
+        {
+            fscanf(fin, "%d", &n);
+            fscanf(fin, "%lf", &capacity);
+            items = (Item *)malloc(n * sizeof(Item));
 
-    Item *items = (Item *)malloc(n * sizeof(Item));
+            printf("\n>> Dang doc du lieu tu file...\n");
+            for (int i = 0; i < n; i++)
+            {
+                items[i].id = i + 1;
+                fscanf(fin, "%lf %lf", &items[i].weight, &items[i].value);
+                // Tính tỷ lệ ngay khi đọc file để khớp logic
+                items[i].ratio = items[i].value / items[i].weight;
+            }
+            fclose(fin);
+            printf(">> Da doc thanh cong %d vat pham. Suc chua balo: %.2f\n", n, capacity);
+        }
+    }
+
+    // Nếu chọn nhập tay hoặc đọc file thất bại
+    if (inputChoice != 1)
+    {
+        printf("Nhap so luong vat pham: ");
+        scanf("%d", &n);
+
+        printf("Nhap trong luong toi da cua balo: ");
+        scanf("%lf", &capacity);
+
+        items = (Item *)malloc(n * sizeof(Item));
+        printf("\n");
+        for (int i = 0; i < n; i++)
+        {
+            items[i].id = i + 1;
+            printf("Vat pham %d:\n", i + 1);
+            printf("  Trong luong: ");
+            scanf("%lf", &items[i].weight);
+            printf("  Gia tri: ");
+            scanf("%lf", &items[i].value);
+
+            // Tinh ty le gia tri/trong luong
+            items[i].ratio = items[i].value / items[i].weight;
+            printf("\n");
+        }
+    }
+
     Item *itemsCopy = (Item *)malloc(n * sizeof(Item));
     int *selectedGreedy = (int *)malloc(n * sizeof(int));
     int *selectedDP = (int *)malloc(n * sizeof(int));
-
-    printf("\n");
-    for (int i = 0; i < n; i++)
-    {
-        items[i].id = i + 1;
-        printf("Vat pham %d:\n", i + 1);
-        printf("  Trong luong: ");
-        scanf("%lf", &items[i].weight);
-        printf("  Gia tri: ");
-        scanf("%lf", &items[i].value);
-
-        // Tinh ty le gia tri/trong luong
-        items[i].ratio = items[i].value / items[i].weight;
-        printf("\n");
-    }
 
     // Sao chép dữ liệu gốc
     memcpy(itemsCopy, items, n * sizeof(Item));
@@ -321,7 +362,7 @@ int main()
     // Giải bài toán balo 0-1 bằng tham lam (không tối ưu)
     printf("\n=======================================================\n");
     printf("       GIAI PHAP: BAI TOAN BALO 0-1 (Tham lam)\n");
-    printf("       ***  LUU Y: KET QUA CO THE KHONG TOI UU!\n");
+    printf("       *** LUU Y: KET QUA CO THE KHONG TOI UU!\n");
     printf("=======================================================\n");
 
     start = clock();
@@ -373,12 +414,12 @@ int main()
         diffPercent = ((double)(zeroOneResultDP - (int)zeroOneResultGreedy) / zeroOneResultDP) * 100;
     }
 
-    printf("| Chenh lech Tham lam vs DP:  %.2f%%                        |\n", diffPercent);
+    printf("| Chenh lech Tham lam vs DP:  %.2f%%                         |\n", diffPercent);
     printf("+=========================================================+\n");
 
    // Kết luận
     printf("\n+==========================================================+\n");
-    printf("|                      KET LUAN                            |\n");
+    printf("|                       KET LUAN                           |\n");
     printf("+=========================================================+\n");
     printf("| * Balo phan so: Tham lam cho ket qua TOI UU              |\n");
     printf("|   Do phuc tap: O(n log n)                                |\n");
@@ -396,7 +437,44 @@ int main()
     }
     printf("+=========================================================+\n");
 
-// Giải phóng bộ nhớ
+    // -----------------------------------------------------------
+    // PHẦN 2: GHI KẾT QUẢ RA FILE
+    // -----------------------------------------------------------
+    char saveChoice;
+    printf("\nBan co muon xuat ket qua tong hop ra file 'output.txt' khong? (y/n): ");
+    // Thêm khoảng trắng trước %c để xóa bộ đệm nếu còn sót ký tự enter
+    scanf(" %c", &saveChoice); 
+
+    if (saveChoice == 'y' || saveChoice == 'Y')
+    {
+        FILE *fout = fopen("output.txt", "w");
+        if (fout == NULL) {
+            printf("[Loi] Khong the tao file 'output.txt'!\n");
+        } else {
+            fprintf(fout, "BAO CAO KET QUA BAI TOAN BALO\n");
+            fprintf(fout, "=============================\n\n");
+            fprintf(fout, "1. Thong so dau vao:\n");
+            fprintf(fout, " - So vat pham: %d\n", n);
+            fprintf(fout, " - Suc chua: %.2f\n\n", capacity);
+            
+            fprintf(fout, "2. Ket qua tinh toan:\n");
+            fprintf(fout, " - Balo Phan so (Tham lam): %.2f (Thoi gian: %.4f ms)\n", fractionalResult, timeFractional);
+            fprintf(fout, " - Balo 0-1 (Tham lam):     %.2f (Thoi gian: %.4f ms)\n", zeroOneResultGreedy, timeGreedy);
+            fprintf(fout, " - Balo 0-1 (Quy hoach dong): %d   (Thoi gian: %.4f ms)\n\n", zeroOneResultDP, timeDP);
+            
+            fprintf(fout, "3. Ket luan:\n");
+            if (diffPercent > 0.01) {
+                fprintf(fout, " -> Tham lam cho ket qua kem hon Quy hoach dong %.2f%%.\n", diffPercent);
+            } else {
+                fprintf(fout, " -> Tham lam va Quy hoach dong cho ket qua nhu nhau.\n");
+            }
+            
+            fclose(fout);
+            printf(">> Da xuat ket qua ra file 'output.txt' thanh cong!\n");
+        }
+    }
+
+    // Giải phóng bộ nhớ
     free(items);
     free(itemsCopy);
     free(selectedGreedy);
